@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coin Change DP Visualizer</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .code-font { font-family: 'Fira Code', monospace; }
+        /* Custom scrollbar for logs */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 h-full flex flex-col overflow-x-hidden">
+
+    <header class="bg-slate-900 border-b border-slate-800 px-6 py-4 flex items-center justify-between shrink-0 shadow-lg">
+        <div class="flex items-center space-x-3">
+            <div class="bg-indigo-600 text-white p-2.5 rounded-xl shadow-md shadow-indigo-500/20 flex items-center justify-center">
+                <i class="fa-solid fa-coins text-xl"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
+                    Coin Change DP Visualizer
+                    <span class="text-xs px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-medium">O(n × m)</span>
+                </h1>
+                <p class="text-xs text-slate-400">Step-by-step visual exploration of bottom-up dynamic programming</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-3">
+            <button onclick="app.openInfoModal()" class="text-slate-400 hover:text-white bg-slate-800/80 hover:bg-slate-800 px-3 py-1.5 rounded-lg text-xs font-medium transition border border-slate-700 flex items-center gap-1.5">
+                <i class="fa-solid fa-circle-question"></i> Guide
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-1 flex flex-col lg:flex-row overflow-hidden p-4 lg:p-6 gap-6 max-w-[1600px] w-full mx-auto">
+
+        <!-- Left Column: Controls & Code Viewer -->
+        <div class="w-full lg:w-[420px] flex flex-col gap-5 shrink-0 overflow-y-auto pr-1">
+            
+            <!-- Parameters Card -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+                <h2 class="text-sm font-semibold text-slate-200 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-sliders text-indigo-400"></i> Parameters
+                </h2>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Coin Denominations (comma separated)</label>
+                        <input type="text" id="coinsInput" value="2, 3, 5" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 transition code-font">
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Target Amount (m)</label>
+                            <input type="number" id="targetInput" value="11" min="1" max="50" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 transition code-font">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">MOD (Infinity)</label>
+                            <input type="number" id="modInput" value="1000" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 transition code-font">
+                        </div>
+                    </div>
+                    <button onclick="app.initializeAlgorithm()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2.5 px-4 rounded-xl text-sm transition shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-rotate"></i> Apply & Restart
+                    </button>
+                </div>
+            </div>
+
+            <!-- Playback Controls Card -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+                <h2 class="text-sm font-semibold text-slate-200 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-play text-indigo-400"></i> Controls
+                </h2>
+                <div class="grid grid-cols-4 gap-2 mb-4">
+                    <button onclick="app.resetToStart()" title="Reset" class="bg-slate-800 hover:bg-slate-700 text-slate-200 py-2.5 px-3 rounded-xl text-sm transition flex flex-col items-center justify-center gap-1 border border-slate-700">
+                        <i class="fa-solid fa-backward-step"></i>
+                        <span class="text-[10px] text-slate-400">Reset</span>
+                    </button>
+                    <button onclick="app.stepBackward()" id="btnPrev" title="Step Back" class="bg-slate-800 hover:bg-slate-700 text-slate-200 py-2.5 px-3 rounded-xl text-sm transition flex flex-col items-center justify-center gap-1 border border-slate-700 disabled:opacity-40 disabled:cursor-not-allowed">
+                        <i class="fa-solid fa-chevron-left"></i>
+                        <span class="text-[10px] text-slate-400">Prev</span>
+                    </button>
+                    <button onclick="app.stepForward()" id="btnNext" title="Step Forward" class="bg-indigo-600 hover:bg-indigo-500 text-white py-2.5 px-3 rounded-xl text-sm transition flex flex-col items-center justify-center gap-1 shadow-md shadow-indigo-600/20 disabled:opacity-40 disabled:cursor-not-allowed">
+                        <i class="fa-solid fa-chevron-right"></i>
+                        <span class="text-[10px] text-indigo-200">Next</span>
+                    </button>
+                    <button onclick="app.toggleAutoPlay()" id="btnPlay" title="Auto Play" class="bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 px-3 rounded-xl text-sm transition flex flex-col items-center justify-center gap-1 shadow-md shadow-emerald-600/20">
+                        <i id="playIcon" class="fa-solid fa-play"></i>
+                        <span id="playText" class="text-[10px] text-emerald-200">Auto</span>
+                    </button>
+                </div>
+                <div>
+                    <div class="flex justify-between text-xs text-slate-400 mb-1">
+                        <span>Speed</span>
+                        <span id="speedVal">500 ms</span>
+                    </div>
+                    <input type="range" id="speedRange" min="50" max="1500" step="50" value="500" class="w-full accent-indigo-500 cursor-pointer" oninput="app.updateSpeed(this.value)">
+                </div>
+            </div>
+
+            <!-- Code Snippet Card -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex-1 flex flex-col">
+                <h2 class="text-sm font-semibold text-slate-200 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-code text-indigo-400"></i> Code Execution
+                </h2>
+                <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs code-font text-slate-300 space-y-1 overflow-x-auto flex-1">
+                    <div id="line-base" class="py-0.5 px-2 rounded transition">vector&lt;ll&gt; dp(m + 1, MOD); dp[0] = 0;</div>
+                    <div id="line-loop-i" class="py-0.5 px-2 rounded transition">for (ll i = 1; i &lt;= m; i++) {</div>
+                    <div id="line-loop-j" class="py-0.5 px-2 rounded transition pl-4">for (ll j = 1; j &lt;= n; j++) {</div>
+                    <div id="line-cond" class="py-0.5 px-2 rounded transition pl-8">if (i - a[j] &gt;= 0) {</div>
+                    <div id="line-trans" class="py-0.5 px-2 rounded transition pl-12">dp[i] = min(dp[i], dp[i - a[j]] + 1);</div>
+                    <div id="line-end" class="py-0.5 px-2 rounded transition">} } }</div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Right Column: DP Grid Visualizer & Live State Details -->
+        <div class="flex-1 flex flex-col gap-5 overflow-hidden">
+
+            <!-- State Summary Banner -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl shrink-0 grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div class="bg-slate-950/60 border border-slate-800/80 rounded-xl p-3 text-center">
+                    <div class="text-[11px] uppercase tracking-wider text-slate-400 mb-1">Current Amount (i)</div>
+                    <div id="statI" class="text-xl font-bold text-indigo-400 code-font">-</div>
+                </div>
+                <div class="bg-slate-950/60 border border-slate-800/80 rounded-xl p-3 text-center">
+                    <div class="text-[11px] uppercase tracking-wider text-slate-400 mb-1">Current Coin (a[j])</div>
+                    <div id="statCoin" class="text-xl font-bold text-emerald-400 code-font">-</div>
+                </div>
+                <div class="bg-slate-950/60 border border-slate-800/80 rounded-xl p-3 text-center">
+                    <div class="text-[11px] uppercase tracking-wider text-slate-400 mb-1">Lookback (i - a[j])</div>
+                    <div id="statLookback" class="text-xl font-bold text-amber-400 code-font">-</div>
+                </div>
+                <div class="bg-slate-950/60 border border-slate-800/80 rounded-xl p-3 text-center">
+                    <div class="text-[11px] uppercase tracking-wider text-slate-400 mb-1">Status / Result</div>
+                    <div id="statStatus" class="text-sm font-semibold text-slate-200 mt-1 truncate">Ready</div>
+                </div>
+            </div>
+
+            <!-- DP Array Grid View -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex-1 flex flex-col overflow-hidden">
+                <div class="flex items-center justify-between mb-4 shrink-0">
+                    <h2 class="text-sm font-semibold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-table-cells text-indigo-400"></i> DP Table State (`dp[0 ... m]`)
+                    </h2>
+                    <div class="flex items-center gap-3 text-xs">
+                        <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-indigo-600 inline-block"></span><span class="text-slate-400">Active i</span></div>
+                        <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-amber-500 inline-block"></span><span class="text-slate-400">Lookback</span></div>
+                        <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-emerald-600 inline-block"></span><span class="text-slate-400">Updated</span></div>
+                    </div>
+                </div>
+
+                <!-- Grid container -->
+                <div id="dpGridContainer" class="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 pr-2 content-start">
+                    <!-- Dynamically injected cells -->
+                </div>
+            </div>
+
+            <!-- Step Log Console -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl shrink-0 h-36 flex flex-col">
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-terminal text-indigo-400"></i> Execution Log
+                    </h3>
+                    <button onclick="app.clearLog()" class="text-[11px] text-slate-500 hover:text-slate-300 transition">Clear</button>
+                </div>
+                <div id="logContainer" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs code-font text-slate-300 overflow-y-auto space-y-1">
+                    <div class="text-slate-500">Algorithm ready. Click 'Next' or 'Auto' to begin execution.</div>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Info Modal -->
+    <div id="infoModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative">
+            <button onclick="app.closeInfoModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            <h3 class="text-lg font-bold text-white mb-3 flex items-center gap-2">
+                <i class="fa-solid fa-circle-info text-indigo-500"></i> How Coin Change DP Works
+            </h3>
+            <div class="text-sm text-slate-300 space-y-3">
+                <p>This visualization steps through the exact bottom-up dynamic programming code you provided:</p>
+                <ul class="list-disc pl-5 space-y-1.5 text-slate-400 text-xs">
+                    <li><strong>dp[0] = 0:</strong> Zero coins are needed to make amount 0. All other amounts start at `MOD` (infinity).</li>
+                    <li><strong>Outer loop (i):</strong> We iterate through every amount from 1 up to the target amount `m`.</li>
+                    <li><strong>Inner loop (j):</strong> For each amount `i`, we test every coin denomination `a[j]`.</li>
+                    <li><strong>Transition:</strong> If the coin fits (`i - a[j] >= 0`), we check if `dp[i - a[j]] + 1` is smaller than the current `dp[i]`.</li>
+                </ul>
+            </div>
+            <div class="mt-6 flex justify-end">
+                <button onclick="app.closeInfoModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl text-sm font-medium transition">Got it!</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class CoinChangeVisualizer {
+            constructor() {
+                this.coins = [];
+                this.m = 11;
+                this.MOD = 1000;
+                
+                this.dp = [];
+                this.steps = [];
+                this.currentStepIndex = 0;
+                this.isAutoPlaying = false;
+                this.autoPlayInterval = null;
+                this.speed = 500;
+
+                this.initDOM();
+                this.initializeAlgorithm();
+            }
+
+            initDOM() {
+                this.coinsInput = document.getElementById('coinsInput');
+                this.targetInput = document.getElementById('targetInput');
+                this.modInput = document.getElementById('modInput');
+                this.gridContainer = document.getElementById('dpGridContainer');
+                this.logContainer = document.getElementById('logContainer');
+                
+                this.statI = document.getElementById('statI');
+                this.statCoin = document.getElementById('statCoin');
+                this.statLookback = document.getElementById('statLookback');
+                this.statStatus = document.getElementById('statStatus');
+                
+                this.btnPrev = document.getElementById('btnPrev');
+                this.btnNext = document.getElementById('btnNext');
+                this.btnPlay = document.getElementById('btnPlay');
+                this.playIcon = document.getElementById('playIcon');
+                this.playText = document.getElementById('playText');
+                this.speedRange = document.getElementById('speedRange');
+                this.speedVal = document.getElementById('speedVal');
+                this.infoModal = document.getElementById('infoModal');
+            }
+
+            readInputs() {
+                const coinStr = this.coinsInput.value;
+                this.coins = coinStr.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n) && n > 0);
+                if (this.coins.length === 0) this.coins = [2, 3, 5];
+                this.coins.sort((a, b) => a - b);
+
+                this.m = Math.max(1, Math.min(50, parseInt(this.targetInput.value) || 11));
+                this.MOD = parseInt(this.modInput.value) || 1000;
+            }
+
+            initializeAlgorithm() {
+                this.stopAutoPlay();
+                this.readInputs();
+
+                this.steps = [];
+                let currentDp = new Array(this.m + 1).fill(this.MOD);
+                currentDp[0] = 0;
+
+                // Record initial state
+                this.steps.push({
+                    dp: [...currentDp],
+                    i: null,
+                    coinIdx: null,
+                    coin: null,
+                    lookback: null,
+                    updated: false,
+                    line: 'base',
+                    log: `Initialized dp array of size ${this.m + 1} with MOD (${this.MOD}). dp[0] = 0.`
+                });
+
+                // Simulate algorithm steps
+                for (let i = 1; i <= this.m; i++) {
+                    this.steps.push({
+                        dp: [...currentDp],
+                        i: i,
+                        coinIdx: null,
+                        coin: null,
+                        lookback: null,
+                        updated: false,
+                        line: 'loop-i',
+                        log: `Outer loop: evaluating target amount i = ${i}.`
+                    });
+
+                    for (let j = 0; j < this.coins.length; j++) {
+                        let coin = this.coins[j];
+                        this.steps.push({
+                            dp: [...currentDp],
+                            i: i,
+                            coinIdx: j,
+                            coin: coin,
+                            lookback: i - coin >= 0 ? i - coin : null,
+                            updated: false,
+                            line: 'loop-j',
+                            log: `Inner loop: testing coin a[${j + 1}] = ${coin} for amount i = ${i}.`
+                        });
+
+                        this.steps.push({
+                            dp: [...currentDp],
+                            i: i,
+                            coinIdx: j,
+                            coin: coin,
+                            lookback: i - coin >= 0 ? i - coin : null,
+                            updated: false,
+                            line: 'cond',
+                            log: `Condition check: i (${i}) - coin (${coin}) = ${i - coin} >= 0? ${i - coin >= 0 ? 'Yes' : 'No (skipped)'}.`
+                        });
+
+                        if (i - coin >= 0) {
+                            let prevVal = currentDp[i];
+                            let candidate = currentDp[i - coin] + 1;
+                            let newVal = Math.min(prevVal, candidate);
+                            let updated = newVal < prevVal;
+
+                            if (updated) {
+                                currentDp[i] = newVal;
+                            }
+
+                            this.steps.push({
+                                dp: [...currentDp],
+                                i: i,
+                                coinIdx: j,
+                                coin: coin,
+                                lookback: i - coin,
+                                updated: updated,
+                                line: 'trans',
+                                log: `Transition: dp[${i}] = min(${prevVal === this.MOD ? 'MOD' : prevVal}, dp[${i - coin}] + 1 (${candidate === this.MOD + 1 ? 'MOD' : candidate})) -> dp[${i}] = ${newVal === this.MOD ? 'MOD' : newVal}.${updated ? ' (Updated!)' : ''}`
+                            });
+                        }
+                    }
+                }
+
+                // Final summary step
+                let finalRes = currentDp[this.m];
+                this.steps.push({
+                    dp: [...currentDp],
+                    i: null,
+                    coinIdx: null,
+                    coin: null,
+                    lookback: null,
+                    updated: false,
+                    line: 'end',
+                    log: finalRes === this.MOD ? `Execution complete. Amount ${this.m} is unreachable (-1).` : `Execution complete. Minimum coins for amount ${this.m} is ${finalRes}.`
+                });
+
+                this.currentStepIndex = 0;
+                this.renderCurrentStep();
+            }
+
+            renderCurrentStep() {
+                const step = this.steps[this.currentStepIndex];
+                
+                // Update stats banner
+                this.statI.textContent = step.i !== null ? step.i : '-';
+                this.statCoin.textContent = step.coin !== null ? step.coin : '-';
+                this.statLookback.textContent = step.lookback !== null ? step.lookback : '-';
+                
+                if (step.i === null && this.currentStepIndex === 0) {
+                    this.statStatus.textContent = 'Ready to start';
+                } else if (step.i === null) {
+                    let ans = step.dp[this.m];
+                    this.statStatus.textContent = ans === this.MOD ? 'Result: -1 (Impossible)' : `Result: ${ans} coins`;
+                } else {
+                    this.statStatus.textContent = step.updated ? 'Updated dp[i] value' : 'Evaluating...';
+                }
+
+                // Highlight active code line
+                ['line-base', 'line-loop-i', 'line-loop-j', 'line-cond', 'line-trans', 'line-end'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) {
+                        el.classList.remove('bg-indigo-950', 'text-indigo-300', 'border-l-4', 'border-indigo-500');
+                    }
+                });
+                const activeLineEl = document.getElementById(`line-${step.line}`);
+                if (activeLineEl) {
+                    activeLineEl.classList.add('bg-indigo-950', 'text-indigo-300', 'border-l-4', 'border-indigo-500');
+                }
+
+                // Render DP Grid
+                this.gridContainer.innerHTML = '';
+                for (let idx = 0; idx <= this.m; idx++) {
+                    let val = step.dp[idx];
+                    let isI = step.i === idx;
+                    let isLookback = step.lookback === idx;
+                    let isJustUpdated = isI && step.updated;
+
+                    let cardClass = "bg-slate-950 border rounded-xl p-3 flex flex-col items-center justify-center transition-all duration-300 relative shadow-md";
+                    let borderColor = "border-slate-800";
+                    let badgeHTML = "";
+
+                    if (isJustUpdated) {
+                        borderColor = "border-emerald-500 shadow-emerald-500/20 scale-105 bg-emerald-950/20";
+                        badgeHTML = `<span class="absolute -top-2 -right-2 bg-emerald-500 text-slate-950 text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow">UPDATED</span>`;
+                    } else if (isI) {
+                        borderColor = "border-indigo-500 shadow-indigo-500/20 scale-105 bg-indigo-950/20";
+                        badgeHTML = `<span class="absolute -top-2 -right-2 bg-indigo-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow">i = ${idx}</span>`;
+                    } else if (isLookback) {
+                        borderColor = "border-amber-500 shadow-amber-500/20 bg-amber-950/20";
+                        badgeHTML = `<span class="absolute -top-2 -right-2 bg-amber-500 text-slate-950 text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow">LOOKBACK</span>`;
+                    }
+
+                    let displayVal = val >= this.MOD ? 'MOD' : val;
+                    let valColor = val >= this.MOD ? 'text-slate-500' : (isJustUpdated ? 'text-emerald-400' : 'text-white');
+
+                    let card = document.createElement('div');
+                    card.className = `${cardClass} ${borderColor}`;
+                    card.innerHTML = `
+                        ${badgeHTML}
+                        <div class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Index ${idx}</div>
+                        <div class="text-lg font-bold code-font ${valColor}">${displayVal}</div>
+                    `;
+                    this.gridContainer.appendChild(card);
+                }
+
+                // Add log entry
+                this.appendLog(step.log);
+
+                // Control button states
+                this.btnPrev.disabled = this.currentStepIndex === 0;
+                this.btnNext.disabled = this.currentStepIndex === this.steps.length - 1;
+
+                if (this.currentStepIndex === this.steps.length - 1 && this.isAutoPlaying) {
+                    this.stopAutoPlay();
+                }
+            }
+
+            appendLog(text) {
+                const logItem = document.createElement('div');
+                logItem.className = "text-slate-300 border-b border-slate-900 pb-0.5";
+                logItem.textContent = `[Step ${this.currentStepIndex + 1}/${this.steps.length}] ${text}`;
+                this.logContainer.appendChild(logItem);
+                this.logContainer.scrollTop = this.logContainer.scrollHeight;
+            }
+
+            clearLog() {
+                this.logContainer.innerHTML = '';
+            }
+
+            stepForward() {
+                if (this.currentStepIndex < this.steps.length - 1) {
+                    this.currentStepIndex++;
+                    this.renderCurrentStep();
+                }
+            }
+
+            stepBackward() {
+                if (this.currentStepIndex > 0) {
+                    this.currentStepIndex--;
+                    this.renderCurrentStep();
+                }
+            }
+
+            resetToStart() {
+                this.stopAutoPlay();
+                this.currentStepIndex = 0;
+                this.renderCurrentStep();
+            }
+
+            toggleAutoPlay() {
+                if (this.isAutoPlaying) {
+                    this.stopAutoPlay();
+                } else {
+                    if (this.currentStepIndex >= this.steps.length - 1) {
+                        this.currentStepIndex = 0;
+                    }
+                    this.startAutoPlay();
+                }
+            }
+
+            startAutoPlay() {
+                this.isAutoPlaying = true;
+                this.playIcon.className = "fa-solid fa-pause";
+                this.playText.textContent = "Pause";
+                this.btnPlay.classList.replace('bg-emerald-600', 'bg-amber-600');
+                this.btnPlay.classList.replace('hover:bg-emerald-500', 'hover:bg-amber-500');
+
+                this.autoPlayInterval = setInterval(() => {
+                    if (this.currentStepIndex < this.steps.length - 1) {
+                        this.currentStepIndex++;
+                        this.renderCurrentStep();
+                    } else {
+                        this.stopAutoPlay();
+                    }
+                }, this.speed);
+            }
+
+            stopAutoPlay() {
+                this.isAutoPlaying = false;
+                if (this.autoPlayInterval) {
+                    clearInterval(this.autoPlayInterval);
+                    this.autoPlayInterval = null;
+                }
+                this.playIcon.className = "fa-solid fa-play";
+                this.playText.textContent = "Auto";
+                this.btnPlay.classList.replace('bg-amber-600', 'bg-emerald-600');
+                this.btnPlay.classList.replace('hover:bg-amber-500', 'hover:bg-emerald-500');
+            }
+
+            updateSpeed(val) {
+                this.speed = parseInt(val);
+                this.speedVal.textContent = `${this.speed} ms`;
+                if (this.isAutoPlaying) {
+                    this.stopAutoPlay();
+                    this.startAutoPlay();
+                }
+            }
+
+            openInfoModal() {
+                this.infoModal.classList.remove('hidden');
+            }
+
+            closeInfoModal() {
+                this.infoModal.classList.add('hidden');
+            }
+        }
+
+        // Initialize application instance on load
+        let app;
+        window.onload = function() {
+            app = new CoinChangeVisualizer();
+        };
+    </script>
+</body>
+</html>
